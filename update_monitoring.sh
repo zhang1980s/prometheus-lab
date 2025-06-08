@@ -58,6 +58,10 @@ log "Pulling latest Node Exporter image..."
 ctr -n monitoring image pull docker.io/prom/node-exporter:latest
 check_status "Node Exporter image pull"
 
+log "Pulling latest Nginx image..."
+ctr -n monitoring image pull docker.io/nginx:latest
+check_status "Nginx image pull"
+
 # Stop and remove containers
 log "Stopping Prometheus container..."
 ctr -n monitoring task kill --signal 9 prometheus || true
@@ -76,6 +80,12 @@ ctr -n monitoring task kill --signal 9 node-exporter || true
 sleep 2
 ctr -n monitoring container rm node-exporter || true
 check_status "Node Exporter container removal"
+
+log "Stopping Nginx container..."
+ctr -n monitoring task kill --signal 9 nginx || true
+sleep 2
+ctr -n monitoring container rm nginx || true
+check_status "Nginx container removal"
 
 # Run Node Exporter
 log "Starting Node Exporter container..."
@@ -142,15 +152,39 @@ else
     ctr -n monitoring task start grafana || log "Failed to restart Grafana container"
 fi
 
+# Run Nginx container
+log "Starting Nginx container..."
+ctr -n monitoring run \
+    --detach \
+    --net-host \
+    --mount type=bind,src=/data/nginx/nginx.conf,dst=/etc/nginx/nginx.conf,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/etc/mime.types,dst=/etc/nginx/etc/mime.types,options=rbind:ro \
+    docker.io/nginx:latest \
+    nginx || log "Nginx container already exists, skipping"
+
+# Wait for Nginx to start up
+log "Waiting for Nginx to start up..."
+sleep 5
+
+# Verify Nginx is running
+log "Verifying Nginx is running..."
+NGINX_STATUS=$(ctr -n monitoring task ls | grep nginx | awk '{print $3}')
+if [ "$NGINX_STATUS" == "RUNNING" ]; then
+    log "SUCCESS: Nginx is running properly"
+else
+    log "WARNING: Nginx may not be running properly. Status: $NGINX_STATUS"
+    log "Attempting to restart Nginx..."
+    ctr -n monitoring task kill --signal 9 nginx || true
+    sleep 5
+    ctr -n monitoring task start nginx || log "Failed to restart Nginx container"
+fi
+
 log "IMPORTANT: When accessing Grafana after update, log in with:"
 log "  Username: admin"
 log "  Password: admin"
 log "You will be prompted to change the password on first login."
-
-# Restart Nginx
-log "Restarting Nginx service..."
-systemctl restart nginx
-check_status "Nginx service restart"
 
 # Print access information
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "your-instance-ip")

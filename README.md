@@ -9,7 +9,8 @@ This solution deploys Prometheus and Grafana containers using containerd on an A
 - Prometheus for metrics collection and storage
 - Grafana for metrics visualization and dashboarding
 - Node Exporter for collecting system metrics from EC2 instances
-- Authentication for both Prometheus and Grafana
+- Nginx as a reverse proxy with authentication for Prometheus
+- All components running as containers for consistency
 - Persistent storage for metrics data and dashboards
 
 ### Architecture Diagram
@@ -113,8 +114,8 @@ flowchart LR
 
 Since Prometheus doesn't have built-in authentication in its core functionality, we implement authentication using a reverse proxy:
 
-#### Nginx Reverse Proxy Authentication
-- Nginx installed as a reverse proxy in front of Prometheus
+#### Containerized Nginx Reverse Proxy Authentication
+- Nginx running as a container with multi-CPU support
 - Basic authentication configured:
   ```nginx
   server {
@@ -172,7 +173,7 @@ This repository includes several scripts to help you deploy, manage, and maintai
 
 ### Main Deployment Script
 
-- **deploy.sh**: The primary deployment script that sets up containerd, Prometheus, Grafana, and Node Exporter on the main EC2 instance. It configures authentication, persistent storage, and basic dashboards.
+- **deploy.sh**: The primary deployment script that sets up containerd, Prometheus, Grafana, Node Exporter, and Nginx (all as containers) on the main EC2 instance. It configures authentication, persistent storage, and basic dashboards.
 
 ### Additional Utility Scripts
 

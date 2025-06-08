@@ -50,13 +50,24 @@ else
     exit 1
 fi
 
-# Check if Nginx is running
-echo "Checking Nginx service..."
-if systemctl is-active --quiet nginx; then
-    success "Nginx service is running"
+# Check if Nginx container is running
+echo "Checking Nginx container..."
+NGINX_RUNNING=$(ctr -n monitoring container ls | grep nginx || echo "")
+if [ -n "$NGINX_RUNNING" ]; then
+    success "Nginx container exists"
+    
+    # Check if the task is running
+    NGINX_TASK=$(ctr -n monitoring task ls | grep nginx | grep RUNNING || echo "")
+    if [ -n "$NGINX_TASK" ]; then
+        success "Nginx container is running"
+    else
+        error "Nginx container exists but is not running"
+        info "Try: sudo ctr -n monitoring task start nginx"
+        exit 1
+    fi
 else
-    error "Nginx service is not running"
-    info "Try: systemctl start nginx"
+    error "Nginx container is not running"
+    info "Check container logs: sudo ctr -n monitoring container ls"
     exit 1
 fi
 

@@ -73,10 +73,6 @@ log "Installing jq..."
 dnf install -y jq
 check_status "jq installation"
 
-log "Installing nginx..."
-dnf install -y nginx
-check_status "nginx installation"
-
 log "Installing httpd-tools..."
 dnf install -y httpd-tools
 check_status "httpd-tools installation"
@@ -102,8 +98,8 @@ check_status "containerd configuration"
 
 # Create directories for persistent storage
 log "Creating directories for persistent storage..."
-mkdir -p /data/prometheus /data/grafana /etc/prometheus /etc/grafana
-chmod 777 /data/prometheus /data/grafana  # More permissive to allow container write access
+mkdir -p /data/prometheus /data/grafana /data/nginx /etc/prometheus /etc/grafana
+chmod 777 /data/prometheus /data/grafana /data/nginx  # More permissive to allow container write access
 check_status "Directory creation"
 
 # Create Prometheus configuration
@@ -126,9 +122,39 @@ scrape_configs:
 EOF
 check_status "Prometheus configuration creation"
 
+# Create Nginx configuration directory
+mkdir -p /data/nginx/conf.d
+
+# Create optimized Nginx main config
+log "Creating optimized Nginx configuration..."
+cat > /data/nginx/nginx.conf << 'EOF'
+user nginx;
+worker_processes auto;  # Use all available cores
+worker_cpu_affinity auto;  # Automatically distribute across CPUs
+
+events {
+    worker_connections 1024;
+    multi_accept on;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    
+    include /etc/nginx/conf.d/*.conf;
+}
+EOF
+check_status "Nginx main configuration creation"
+
 # Create Nginx configuration for Prometheus
 log "Creating Nginx configuration for Prometheus..."
-cat > /etc/nginx/conf.d/prometheus.conf << 'EOF'
+cat > /data/nginx/conf.d/prometheus.conf << 'EOF'
 server {
     listen 8080;
     
@@ -146,7 +172,7 @@ check_status "Nginx configuration for Prometheus"
 
 # Create Prometheus user
 log "Creating Prometheus user for authentication..."
-htpasswd -bc /etc/nginx/.htpasswd admin secure_prometheus_password
+htpasswd -bc /data/nginx/.htpasswd admin secure_prometheus_password
 check_status "Prometheus user creation"
 
 # Create minimal Grafana configuration
@@ -182,6 +208,11 @@ check_status "Grafana image pull"
 log "Pulling Node Exporter image..."
 ctr -n monitoring image pull docker.io/prom/node-exporter:latest
 check_status "Node Exporter image pull"
+
+# Pull Nginx image
+log "Pulling Nginx image..."
+ctr -n monitoring image pull docker.io/nginx:latest
+check_status "Nginx image pull"
 
 # Run Node Exporter
 log "Starting Node Exporter container..."
@@ -236,11 +267,18 @@ check_status "Grafana container start"
 log "Waiting for Grafana to start up..."
 sleep 10
 
-# Start and enable Nginx
-log "Starting Nginx service..."
-systemctl start nginx
-systemctl enable nginx
-check_status "Nginx service start"
+# Run Nginx container
+log "Starting Nginx container..."
+ctr -n monitoring run \
+    --detach \
+    --net-host \
+    --mount type=bind,src=/data/nginx/nginx.conf,dst=/etc/nginx/nginx.conf,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
+    --mount type=bind,src=/usr/share/nginx/html,dst=/usr/share/nginx/html,options=rbind:ro \
+    docker.io/nginx:latest \
+    nginx
+check_status "Nginx container start"
 
 # Configure firewall if it's enabled
 if systemctl is-active --quiet firewalld; then
@@ -250,6 +288,36 @@ if systemctl is-active --quiet firewalld; then
     firewall-cmd --reload
     check_status "Firewall configuration"
 fi
+
+# Copy Nginx mime.types file to data directory for container to use
+log "Copying Nginx mime.types file..."
+mkdir -p /data/nginx/etc
+if [ -f "/etc/nginx/mime.types" ]; then
+    cp /etc/nginx/mime.types /data/nginx/etc/
+else
+    # Create a basic mime.types file if not available
+    cat > /data/nginx/etc/mime.types << 'EOF'
+types {
+    text/html                             html htm shtml;
+    text/css                              css;
+    text/xml                              xml;
+    application/javascript                js;
+    application/json                      json;
+    image/gif                             gif;
+    image/jpeg                            jpeg jpg;
+    image/png                             png;
+    image/svg+xml                         svg svgz;
+    image/x-icon                          ico;
+    application/pdf                       pdf;
+}
+EOF
+fi
+check_status "Nginx mime.types setup"
+
+# Update Nginx configuration to use the local mime.types file
+log "Updating Nginx configuration to use local mime.types..."
+sed -i 's|include /etc/nginx/mime.types|include /etc/nginx/etc/mime.types|g' /data/nginx/nginx.conf
+check_status "Nginx configuration update"
 
 # Create a basic Grafana dashboard configuration
 log "Creating Grafana dashboard configuration..."
@@ -586,8 +654,10 @@ providers:
 EOF
 check_status "Grafana dashboard provisioning"
 
-# Verify Grafana is running
-log "Verifying Grafana is running..."
+# Verify containers are running
+log "Verifying containers are running..."
+
+# Check Grafana
 GRAFANA_STATUS=$(ctr -n monitoring task ls | grep grafana | awk '{print $3}')
 if [ "$GRAFANA_STATUS" == "RUNNING" ]; then
     log "SUCCESS: Grafana is running properly"
@@ -597,6 +667,18 @@ else
     ctr -n monitoring task kill --signal 9 grafana || true
     sleep 5
     ctr -n monitoring task start grafana || log "Failed to restart Grafana container"
+fi
+
+# Check Nginx
+NGINX_STATUS=$(ctr -n monitoring task ls | grep nginx | awk '{print $3}')
+if [ "$NGINX_STATUS" == "RUNNING" ]; then
+    log "SUCCESS: Nginx is running properly"
+else
+    log "WARNING: Nginx may not be running properly. Status: $NGINX_STATUS"
+    log "Attempting to restart Nginx..."
+    ctr -n monitoring task kill --signal 9 nginx || true
+    sleep 5
+    ctr -n monitoring task start nginx || log "Failed to restart Nginx container"
 fi
 
 log "IMPORTANT: When first accessing Grafana, log in with:"

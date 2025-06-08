@@ -122,8 +122,9 @@ sudo ./deploy.sh
 The script will:
 - Install and configure containerd
 - Set up Prometheus and Grafana with persistent storage
-- Configure basic authentication
-- Deploy containers for Prometheus, Grafana, and Node Exporter
+- Configure basic authentication via containerized Nginx
+- Deploy containers for Prometheus, Grafana, Node Exporter, and Nginx
+- Configure Nginx for multi-CPU support
 - Create a basic dashboard for system metrics
 - Display access information when complete
 
@@ -146,8 +147,9 @@ After successful deployment, you can access:
 #### For Prometheus:
 
 ```bash
-sudo htpasswd -c /etc/nginx/.htpasswd admin
-sudo systemctl restart nginx
+sudo htpasswd -c /data/nginx/.htpasswd admin
+sudo ctr -n monitoring task kill --signal 9 nginx
+sudo ctr -n monitoring task start nginx
 ```
 
 #### For Grafana:
@@ -241,9 +243,9 @@ sudo ctr -n monitoring container ls
 
 #### 2. Cannot Access Prometheus/Grafana
 
-Check if Nginx is running:
+Check if Nginx container is running:
 ```bash
-sudo systemctl status nginx
+sudo ctr -n monitoring task ls | grep nginx
 ```
 
 Check firewall status:
@@ -287,6 +289,14 @@ To update Grafana:
 sudo ctr -n monitoring image pull docker.io/grafana/grafana:latest
 sudo ctr -n monitoring task kill --signal 9 grafana
 sudo ctr -n monitoring container rm grafana
+# Re-run the container creation command from deploy.sh
+```
+
+To update Nginx:
+```bash
+sudo ctr -n monitoring image pull docker.io/nginx:latest
+sudo ctr -n monitoring task kill --signal 9 nginx
+sudo ctr -n monitoring container rm nginx
 # Re-run the container creation command from deploy.sh
 ```
 

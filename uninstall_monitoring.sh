@@ -168,16 +168,7 @@ else
     log "Monitoring namespace not found, skipping image removal"
 fi
 
-# Stop and disable services
-log "Stopping and disabling services..."
-# Check if nginx service exists
-if systemctl list-unit-files | grep -q nginx.service; then
-    systemctl stop nginx || log "Failed to stop nginx service (may already be stopped)"
-    systemctl disable nginx || log "Failed to disable nginx service"
-    log "Nginx service stopped and disabled"
-else
-    log "Nginx service not found, skipping"
-fi
+# No need to stop and disable Nginx service as it's now containerized
 
 # Check if node_exporter service exists
 if systemctl list-unit-files | grep -q node_exporter.service; then
@@ -210,8 +201,7 @@ if [ "$REMOVE_CONFIGS" = true ]; then
     log "Removing configuration files..."
     rm -rf /etc/prometheus
     rm -rf /etc/grafana
-    rm -f /etc/nginx/conf.d/prometheus.conf
-    rm -f /etc/nginx/.htpasswd
+    rm -rf /data/nginx
     log "Configuration files removed."
 else
     log "Configuration files preserved."
@@ -235,6 +225,6 @@ if [ "$REMOVE_CONFIGS" = false ]; then
 fi
 
 log "To completely remove all packages:"
-log "  sudo dnf remove -y containerd nginx"
+log "  sudo dnf remove -y containerd"
 
 exit 0

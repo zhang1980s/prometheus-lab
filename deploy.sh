@@ -130,13 +130,13 @@ check_status "Prometheus configuration creation"
 log "Creating Nginx configuration for Prometheus..."
 cat > /etc/nginx/conf.d/prometheus.conf << 'EOF'
 server {
-    listen 9090;
+    listen 8080;
     
     location / {
         auth_basic "Prometheus";
         auth_basic_user_file /etc/nginx/.htpasswd;
         
-        proxy_pass http://localhost:9091;
+        proxy_pass http://localhost:9090;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -235,7 +235,7 @@ check_status "Nginx service start"
 # Configure firewall if it's enabled
 if systemctl is-active --quiet firewalld; then
     log "Configuring firewall..."
-    firewall-cmd --permanent --add-port=9090/tcp
+    firewall-cmd --permanent --add-port=8080/tcp
     firewall-cmd --permanent --add-port=3000/tcp
     firewall-cmd --reload
     check_status "Firewall configuration"
@@ -587,7 +587,7 @@ check_status "Grafana container restart"
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 log "Deployment completed successfully!"
 log "--------------------------------------"
-log "Access Prometheus: http://$PUBLIC_IP:9090"
+log "Access Prometheus: http://$PUBLIC_IP:8080"
 log "  Username: admin"
 log "  Password: secure_prometheus_password"
 log ""

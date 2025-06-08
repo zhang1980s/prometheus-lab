@@ -120,7 +120,7 @@ check_status "Nginx service restart"
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 log "Update completed successfully!"
 log "--------------------------------------"
-log "Access Prometheus: http://$PUBLIC_IP:9090"
+log "Access Prometheus: http://$PUBLIC_IP:8080"
 log "Access Grafana: http://$PUBLIC_IP:3000"
 log "--------------------------------------"
 log "Backup files are stored in /root/monitoring-backups/"

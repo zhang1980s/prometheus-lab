@@ -198,8 +198,7 @@ ctr -n monitoring run \
     --detach \
     --net-host \
     docker.io/prom/node-exporter:latest \
-    node-exporter \
-    --path.rootfs=/host
+    node-exporter
 check_status "Node Exporter container start"
 
 # Run Prometheus

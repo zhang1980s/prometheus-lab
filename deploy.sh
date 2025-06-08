@@ -149,34 +149,17 @@ log "Creating Prometheus user for authentication..."
 htpasswd -bc /etc/nginx/.htpasswd admin secure_prometheus_password
 check_status "Prometheus user creation"
 
-# Create Grafana configuration
-log "Creating Grafana configuration..."
+# Create minimal Grafana configuration
+log "Creating minimal Grafana configuration..."
+mkdir -p /etc/grafana
 cat > /etc/grafana/grafana.ini << 'EOF'
 [server]
 http_port = 3000
-domain = localhost
-root_url = %(protocol)s://%(domain)s:%(http_port)s/
-
-[security]
-# Admin password is set via environment variable GF_SECURITY_ADMIN_PASSWORD
-admin_user = admin
-disable_initial_admin_creation = false
-
-[auth]
-disable_login_form = false
-
-[auth.basic]
-enabled = true
 
 [paths]
 data = /var/lib/grafana
 logs = /var/log/grafana
 plugins = /var/lib/grafana/plugins
-
-[users]
-allow_sign_up = false
-auto_assign_org = true
-auto_assign_org_role = Admin
 EOF
 check_status "Grafana configuration creation"
 
@@ -229,32 +212,22 @@ log "Setting permissions on Grafana data directory..."
 chmod -R 777 /data/grafana
 check_status "Grafana permissions set"
 
-# Remove any existing Grafana container to ensure clean start
-log "Removing any existing Grafana container..."
+# Remove any existing Grafana container and database
+log "Removing any existing Grafana container and database..."
 ctr -n monitoring task kill --signal 9 grafana 2>/dev/null || true
 ctr -n monitoring container rm grafana 2>/dev/null || true
-log "Existing Grafana container removed or not found"
+rm -f /data/grafana/grafana.db 2>/dev/null || true
+log "Existing Grafana container and database removed or not found"
 
-# Clear admin password if it exists in the database
-log "Preparing for clean Grafana installation..."
-rm -rf /data/grafana/grafana.db 2>/dev/null || true
-log "Removed existing Grafana database if present"
-
+# Start Grafana with minimal configuration
+log "Starting Grafana with minimal configuration..."
 ctr -n monitoring run \
     --detach \
     --mount type=bind,src=/etc/grafana/grafana.ini,dst=/etc/grafana/grafana.ini,options=rbind:ro \
     --mount type=bind,src=/data/grafana,dst=/var/lib/grafana,options=rbind:rw \
     --net-host \
     --env GF_SECURITY_ADMIN_USER=admin \
-    --env GF_SECURITY_ADMIN_PASSWORD=secure_grafana_password \
-    --env GF_PATHS_DATA=/var/lib/grafana \
-    --env GF_PATHS_LOGS=/var/log/grafana \
-    --env GF_PATHS_PLUGINS=/var/lib/grafana/plugins \
-    --env GF_USERS_ALLOW_SIGN_UP=false \
-    --env GF_AUTH_BASIC_ENABLED=true \
-    --env GF_AUTH_DISABLE_LOGIN_FORM=false \
-    --env GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false \
-    --env GF_INSTALL_PLUGINS="grafana-clock-panel,grafana-simple-json-datasource" \
+    --env GF_SECURITY_ADMIN_PASSWORD=admin \
     docker.io/grafana/grafana:latest \
     grafana
 check_status "Grafana container start"
@@ -615,7 +588,7 @@ check_status "Grafana dashboard provisioning"
 
 # Verify Grafana is running
 log "Verifying Grafana is running..."
-GRAFANA_STATUS=$(ctr -n monitoring task ls | grep grafana | awk '{print $2}')
+GRAFANA_STATUS=$(ctr -n monitoring task ls | grep grafana | awk '{print $3}')
 if [ "$GRAFANA_STATUS" == "RUNNING" ]; then
     log "SUCCESS: Grafana is running properly"
 else
@@ -625,6 +598,11 @@ else
     sleep 5
     ctr -n monitoring task start grafana || log "Failed to restart Grafana container"
 fi
+
+log "IMPORTANT: When first accessing Grafana, log in with:"
+log "  Username: admin"
+log "  Password: admin"
+log "You will be prompted to change the password on first login."
 
 # Print access information
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "your-instance-ip")
@@ -636,7 +614,7 @@ log "  Password: secure_prometheus_password"
 log ""
 log "Access Grafana: http://$PUBLIC_IP:3000"
 log "  Username: admin"
-log "  Password: secure_grafana_password"
+log "  Password: admin (you'll be prompted to change this on first login)"
 log "--------------------------------------"
 log "IMPORTANT: Change these default passwords immediately!"
 

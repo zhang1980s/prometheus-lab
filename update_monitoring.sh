@@ -59,7 +59,7 @@ ctr -n monitoring image pull docker.io/prom/node-exporter:latest
 check_status "Node Exporter image pull"
 
 log "Pulling latest Nginx image..."
-ctr -n monitoring image pull docker.io/nginx:latest
+ctr -n monitoring image pull docker.io/library/nginx:latest
 check_status "Nginx image pull"
 
 # Stop and remove containers
@@ -161,7 +161,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
     --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
     --mount type=bind,src=/data/nginx/etc/mime.types,dst=/etc/nginx/etc/mime.types,options=rbind:ro \
-    docker.io/nginx:latest \
+    docker.io/library/nginx:latest \
     nginx || log "Nginx container already exists, skipping"
 
 # Wait for Nginx to start up

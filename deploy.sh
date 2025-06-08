@@ -211,7 +211,7 @@ check_status "Node Exporter image pull"
 
 # Pull Nginx image
 log "Pulling Nginx image..."
-ctr -n monitoring image pull docker.io/nginx:latest
+ctr -n monitoring image pull docker.io/library/nginx:latest
 check_status "Nginx image pull"
 
 # Run Node Exporter
@@ -276,7 +276,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
     --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
     --mount type=bind,src=/usr/share/nginx/html,dst=/usr/share/nginx/html,options=rbind:ro \
-    docker.io/nginx:latest \
+    docker.io/library/nginx:latest \
     nginx
 check_status "Nginx container start"
 

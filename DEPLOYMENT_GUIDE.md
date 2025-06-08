@@ -294,7 +294,7 @@ sudo ctr -n monitoring container rm grafana
 
 To update Nginx:
 ```bash
-sudo ctr -n monitoring image pull docker.io/nginx:latest
+sudo ctr -n monitoring image pull docker.io/library/nginx:latest
 sudo ctr -n monitoring task kill --signal 9 nginx
 sudo ctr -n monitoring container rm nginx
 # Re-run the container creation command from deploy.sh

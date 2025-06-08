@@ -94,11 +94,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/data/prometheus,dst=/prometheus,options=rbind:rw \
     --net-host \
     docker.io/prom/prometheus:latest \
-    prometheus \
-    --config.file=/etc/prometheus/prometheus.yml \
-    --storage.tsdb.path=/prometheus \
-    --web.listen-address=:9091 \
-    --web.enable-lifecycle
+    prometheus
 check_status "Prometheus container start"
 
 # Run Grafana

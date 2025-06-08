@@ -172,25 +172,25 @@ plugins = /var/lib/grafana/plugins
 EOF
 check_status "Grafana configuration creation"
 
-# Pull Prometheus image
-log "Pulling Prometheus image..."
-ctr image pull docker.io/prom/prometheus:latest
-check_status "Prometheus image pull"
-
-# Pull Grafana image
-log "Pulling Grafana image..."
-ctr image pull docker.io/grafana/grafana:latest
-check_status "Grafana image pull"
-
-# Pull Node Exporter image
-log "Pulling Node Exporter image..."
-ctr image pull docker.io/prom/node-exporter:latest
-check_status "Node Exporter image pull"
-
 # Create containerd namespace if it doesn't exist
 log "Creating containerd namespace..."
 ctr namespace ls | grep -q monitoring || ctr namespace create monitoring
 check_status "containerd namespace creation"
+
+# Pull Prometheus image
+log "Pulling Prometheus image..."
+ctr -n monitoring image pull docker.io/prom/prometheus:latest
+check_status "Prometheus image pull"
+
+# Pull Grafana image
+log "Pulling Grafana image..."
+ctr -n monitoring image pull docker.io/grafana/grafana:latest
+check_status "Grafana image pull"
+
+# Pull Node Exporter image
+log "Pulling Node Exporter image..."
+ctr -n monitoring image pull docker.io/prom/node-exporter:latest
+check_status "Node Exporter image pull"
 
 # Run Node Exporter
 log "Starting Node Exporter container..."

@@ -47,15 +47,15 @@ check_status "Data backup"
 
 # Pull latest images
 log "Pulling latest Prometheus image..."
-ctr image pull docker.io/prom/prometheus:latest
+ctr -n monitoring image pull docker.io/prom/prometheus:latest
 check_status "Prometheus image pull"
 
 log "Pulling latest Grafana image..."
-ctr image pull docker.io/grafana/grafana:latest
+ctr -n monitoring image pull docker.io/grafana/grafana:latest
 check_status "Grafana image pull"
 
 log "Pulling latest Node Exporter image..."
-ctr image pull docker.io/prom/node-exporter:latest
+ctr -n monitoring image pull docker.io/prom/node-exporter:latest
 check_status "Node Exporter image pull"
 
 # Stop and remove containers

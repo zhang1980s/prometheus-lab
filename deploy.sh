@@ -222,6 +222,9 @@ ctr -n monitoring run \
     --net-host \
     --env GF_SECURITY_ADMIN_USER=admin \
     --env GF_SECURITY_ADMIN_PASSWORD=secure_grafana_password \
+    --env GF_PATHS_DATA=/var/lib/grafana \
+    --env GF_PATHS_LOGS=/var/log/grafana \
+    --env GF_PATHS_PLUGINS=/var/lib/grafana/plugins \
     docker.io/grafana/grafana:latest \
     grafana
 check_status "Grafana container start"
@@ -584,7 +587,7 @@ ctr -n monitoring task start grafana || log "Grafana container already running, 
 log "SUCCESS: Grafana container restart"
 
 # Print access information
-PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "your-instance-ip")
 log "Deployment completed successfully!"
 log "--------------------------------------"
 log "Access Prometheus: http://$PUBLIC_IP:8080"

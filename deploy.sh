@@ -103,7 +103,7 @@ check_status "containerd configuration"
 # Create directories for persistent storage
 log "Creating directories for persistent storage..."
 mkdir -p /data/prometheus /data/grafana /etc/prometheus /etc/grafana
-chmod 755 /data/prometheus /data/grafana
+chmod 777 /data/prometheus /data/grafana  # More permissive to allow container write access
 check_status "Directory creation"
 
 # Create Prometheus configuration
@@ -208,6 +208,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/etc/prometheus,dst=/etc/prometheus,options=rbind:ro \
     --mount type=bind,src=/data/prometheus,dst=/prometheus,options=rbind:rw \
     --net-host \
+    --env PROMETHEUS_ARGS="--web.listen-address=:9091" \
     docker.io/prom/prometheus:latest \
     prometheus
 check_status "Prometheus container start"

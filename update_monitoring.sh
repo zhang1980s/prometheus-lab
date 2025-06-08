@@ -93,6 +93,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/etc/prometheus,dst=/etc/prometheus,options=rbind:ro \
     --mount type=bind,src=/data/prometheus,dst=/prometheus,options=rbind:rw \
     --net-host \
+    --env PROMETHEUS_ARGS="--web.listen-address=:9091" \
     docker.io/prom/prometheus:latest \
     prometheus
 check_status "Prometheus container start"

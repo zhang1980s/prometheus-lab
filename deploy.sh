@@ -275,7 +275,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/data/nginx/nginx.conf,dst=/etc/nginx/nginx.conf,options=rbind:ro \
     --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
     --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
-    --mount type=bind,src=/usr/share/nginx/html,dst=/usr/share/nginx/html,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/etc/mime.types,dst=/etc/nginx/etc/mime.types,options=rbind:ro \
     docker.io/library/nginx:latest \
     nginx
 check_status "Nginx container start"
@@ -289,14 +289,11 @@ if systemctl is-active --quiet firewalld; then
     check_status "Firewall configuration"
 fi
 
-# Copy Nginx mime.types file to data directory for container to use
-log "Copying Nginx mime.types file..."
+# Create Nginx mime.types file
+log "Creating Nginx mime.types file..."
 mkdir -p /data/nginx/etc
-if [ -f "/etc/nginx/mime.types" ]; then
-    cp /etc/nginx/mime.types /data/nginx/etc/
-else
-    # Create a basic mime.types file if not available
-    cat > /data/nginx/etc/mime.types << 'EOF'
+# Create a basic mime.types file
+cat > /data/nginx/etc/mime.types << 'EOF'
 types {
     text/html                             html htm shtml;
     text/css                              css;
@@ -311,7 +308,6 @@ types {
     application/pdf                       pdf;
 }
 EOF
-fi
 check_status "Nginx mime.types setup"
 
 # Update Nginx configuration to use the local mime.types file

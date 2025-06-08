@@ -224,26 +224,15 @@ check_status "Prometheus container start"
 # Run Grafana
 log "Starting Grafana container..."
 
-# Create a custom entrypoint script for Grafana
-mkdir -p /etc/grafana/scripts
-cat > /etc/grafana/scripts/entrypoint.sh << 'EOF'
-#!/bin/bash
-set -e
-
-# Set permissions on data directory
-chown -R grafana:grafana /var/lib/grafana
-
-# Start Grafana
-exec /run.sh
-EOF
-chmod +x /etc/grafana/scripts/entrypoint.sh
-check_status "Grafana entrypoint script creation"
+# Set very permissive permissions on Grafana data directory
+log "Setting permissions on Grafana data directory..."
+chmod -R 777 /data/grafana
+check_status "Grafana permissions set"
 
 ctr -n monitoring run \
     --detach \
     --mount type=bind,src=/etc/grafana/grafana.ini,dst=/etc/grafana/grafana.ini,options=rbind:ro \
     --mount type=bind,src=/data/grafana,dst=/var/lib/grafana,options=rbind:rw \
-    --mount type=bind,src=/etc/grafana/scripts/entrypoint.sh,dst=/entrypoint.sh,options=rbind:ro \
     --net-host \
     --env GF_SECURITY_ADMIN_USER=admin \
     --env GF_SECURITY_ADMIN_PASSWORD=secure_grafana_password \
@@ -251,7 +240,9 @@ ctr -n monitoring run \
     --env GF_PATHS_LOGS=/var/log/grafana \
     --env GF_PATHS_PLUGINS=/var/lib/grafana/plugins \
     --env GF_USERS_ALLOW_SIGN_UP=false \
-    --entrypoint "/entrypoint.sh" \
+    --env GF_AUTH_BASIC_ENABLED=true \
+    --env GF_AUTH_DISABLE_LOGIN_FORM=false \
+    --env GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false \
     docker.io/grafana/grafana:latest \
     grafana
 check_status "Grafana container start"

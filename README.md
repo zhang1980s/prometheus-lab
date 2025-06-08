@@ -25,7 +25,7 @@ flowchart TD
     H[EC2 Instance 2\nwith Node Exporter] --> C
     I[EC2 Instance 3\nwith Node Exporter] --> C
     C --> D
-    J[User] --> |Port 9090| C
+    J[User] --> |Port 8080| C
     J --> |Port 3000| D
 ```
 
@@ -34,7 +34,7 @@ flowchart TD
 ```mermaid
 flowchart LR
     A[Internet] --> |Port 22| B[EC2 Security Group]
-    A --> |Port 9090| B
+    A --> |Port 8080| B
     A --> |Port 3000| B
     B --> C[Amazon Linux 2023 EC2]
     C --> D[containerd]
@@ -53,7 +53,7 @@ flowchart LR
 - Additional EBS volume(s) for persistent storage (recommended 50GB+)
 - Security group with inbound rules for:
   - SSH (port 22)
-  - Prometheus (port 9090)
+  - Prometheus (port 8080)
   - Grafana (port 3000)
 
 #### 1.2 Storage Configuration
@@ -81,7 +81,7 @@ flowchart LR
 
 #### 3.2 Prometheus Container Deployment
 - Persistent volume mapping to `/data/prometheus`
-- Port mapping (9090:9090)
+- Port mapping (internal: 9090, external via Nginx: 8080)
 - Resource limits
 - Restart policy
 
@@ -118,7 +118,7 @@ Since Prometheus doesn't have built-in authentication in its core functionality,
 - Basic authentication configured:
   ```nginx
   server {
-      listen 9090;
+      listen 8080;
       
       location / {
           auth_basic "Prometheus";

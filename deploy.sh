@@ -116,7 +116,7 @@ global:
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9091']
+      - targets: ['localhost:9090']
 
   - job_name: 'node'
     static_configs:
@@ -199,7 +199,7 @@ ctr -n monitoring run \
     --mount type=bind,src=/etc/prometheus,dst=/etc/prometheus,options=rbind:ro \
     --mount type=bind,src=/data/prometheus,dst=/prometheus,options=rbind:rw \
     --net-host \
-    --env PROMETHEUS_ARGS="--web.listen-address=:9091" \
+    --env PROMETHEUS_ARGS="" \
     docker.io/prom/prometheus:latest \
     prometheus
 check_status "Prometheus container start"
@@ -563,7 +563,7 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://localhost:9091
+    url: http://localhost:9090
     isDefault: true
 EOF
 check_status "Grafana datasource configuration"

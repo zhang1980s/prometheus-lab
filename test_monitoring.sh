@@ -98,18 +98,18 @@ fi
 # Test Prometheus API
 echo ""
 echo "Testing Prometheus API..."
-PROMETHEUS_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9091/api/v1/status/config)
+PROMETHEUS_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/api/v1/status/config)
 
 if [ "$PROMETHEUS_RESPONSE" = "200" ]; then
     success "Prometheus API is responding correctly"
 else
     error "Prometheus API is not responding correctly (HTTP $PROMETHEUS_RESPONSE)"
-    info "Check if Prometheus is running on port 9091"
+    info "Check if Prometheus is running on port 9090"
 fi
 
 # Test Prometheus metrics
 echo "Testing Prometheus metrics collection..."
-PROMETHEUS_METRICS=$(curl -s http://localhost:9091/api/v1/query?query=up | grep -o '"result":\[.*\]' || echo "")
+PROMETHEUS_METRICS=$(curl -s http://localhost:9090/api/v1/query?query=up | grep -o '"result":\[.*\]' || echo "")
 
 if [ -n "$PROMETHEUS_METRICS" ]; then
     success "Prometheus is collecting metrics"
@@ -124,7 +124,7 @@ fi
 
 # Test Nginx authentication for Prometheus
 echo "Testing Prometheus authentication via Nginx..."
-NGINX_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9090)
+NGINX_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
 
 if [ "$NGINX_RESPONSE" = "401" ]; then
     success "Prometheus authentication is working correctly"
@@ -189,7 +189,7 @@ PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo 
 echo ""
 echo "=== Monitoring System Summary ==="
 echo "Public IP: $PUBLIC_IP"
-echo "Prometheus URL: http://$PUBLIC_IP:9090"
+echo "Prometheus URL: http://$PUBLIC_IP:8080"
 echo "Grafana URL: http://$PUBLIC_IP:3000"
 echo ""
 echo "To access Prometheus:"

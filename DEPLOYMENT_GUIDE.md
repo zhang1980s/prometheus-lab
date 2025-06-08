@@ -24,7 +24,7 @@ Create a security group with the following inbound rules:
 | Type        | Protocol | Port Range | Source                      | Description                |
 |-------------|----------|------------|-----------------------------|-----------------------------|
 | SSH         | TCP      | 22         | Your IP address or range    | SSH access                  |
-| Custom TCP  | TCP      | 9090       | Your IP address or range    | Prometheus web interface    |
+| Custom TCP  | TCP      | 8080       | Your IP address or range    | Prometheus web interface    |
 | Custom TCP  | TCP      | 3000       | Your IP address or range    | Grafana web interface       |
 
 For production environments, consider restricting access to specific IP ranges or using a VPN/bastion host.
@@ -131,7 +131,7 @@ The script will:
 
 After successful deployment, you can access:
 
-- **Prometheus**: http://your-instance-public-ip:9090
+- **Prometheus**: http://your-instance-public-ip:8080
   - Username: admin
   - Password: secure_prometheus_password
 

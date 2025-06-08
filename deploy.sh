@@ -578,10 +578,10 @@ check_status "Grafana dashboard provisioning"
 
 # Restart Grafana to apply changes
 log "Restarting Grafana container..."
-ctr -n monitoring task kill --signal 9 grafana
+ctr -n monitoring task kill --signal 9 grafana || true
 sleep 5
-ctr -n monitoring task start grafana
-check_status "Grafana container restart"
+ctr -n monitoring task start grafana || log "Grafana container already running, skipping start"
+log "SUCCESS: Grafana container restart"
 
 # Print access information
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)

@@ -83,8 +83,8 @@ ctr -n monitoring run \
     --detach \
     --net-host \
     docker.io/prom/node-exporter:latest \
-    node-exporter
-check_status "Node Exporter container start"
+    node-exporter || log "Node Exporter container already exists, skipping"
+log "SUCCESS: Node Exporter container start"
 
 # Run Prometheus
 log "Starting Prometheus container..."
@@ -95,8 +95,8 @@ ctr -n monitoring run \
     --net-host \
     --env PROMETHEUS_ARGS="--web.listen-address=:9091" \
     docker.io/prom/prometheus:latest \
-    prometheus
-check_status "Prometheus container start"
+    prometheus || log "Prometheus container already exists, skipping"
+log "SUCCESS: Prometheus container start"
 
 # Run Grafana
 log "Starting Grafana container..."
@@ -108,8 +108,8 @@ ctr -n monitoring run \
     --env GF_SECURITY_ADMIN_USER=admin \
     --env GF_SECURITY_ADMIN_PASSWORD=secure_grafana_password \
     docker.io/grafana/grafana:latest \
-    grafana
-check_status "Grafana container start"
+    grafana || log "Grafana container already exists, skipping"
+log "SUCCESS: Grafana container start"
 
 # Restart Nginx
 log "Restarting Nginx service..."

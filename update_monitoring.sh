@@ -106,6 +106,11 @@ log "Setting permissions on Grafana data directory..."
 chmod -R 777 /data/grafana
 log "Grafana permissions set"
 
+# Clear admin password if it exists in the database
+log "Preparing for clean Grafana installation..."
+rm -rf /data/grafana/grafana.db 2>/dev/null || true
+log "Removed existing Grafana database if present"
+
 ctr -n monitoring run \
     --detach \
     --mount type=bind,src=/etc/grafana/grafana.ini,dst=/etc/grafana/grafana.ini,options=rbind:ro \
@@ -120,9 +125,26 @@ ctr -n monitoring run \
     --env GF_AUTH_BASIC_ENABLED=true \
     --env GF_AUTH_DISABLE_LOGIN_FORM=false \
     --env GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=false \
+    --env GF_INSTALL_PLUGINS="grafana-clock-panel,grafana-simple-json-datasource" \
     docker.io/grafana/grafana:latest \
     grafana || log "Grafana container already exists, skipping"
-log "SUCCESS: Grafana container start"
+
+# Wait for Grafana to start up
+log "Waiting for Grafana to start up..."
+sleep 10
+
+# Verify Grafana is running
+log "Verifying Grafana is running..."
+GRAFANA_STATUS=$(ctr -n monitoring task ls | grep grafana | awk '{print $2}')
+if [ "$GRAFANA_STATUS" == "RUNNING" ]; then
+    log "SUCCESS: Grafana is running properly"
+else
+    log "WARNING: Grafana may not be running properly. Status: $GRAFANA_STATUS"
+    log "Attempting to restart Grafana..."
+    ctr -n monitoring task kill --signal 9 grafana || true
+    sleep 5
+    ctr -n monitoring task start grafana || log "Failed to restart Grafana container"
+fi
 
 # Restart Nginx
 log "Restarting Nginx service..."

@@ -121,22 +121,72 @@ fi
 
 # Stop and remove containers
 log "Stopping and removing containers..."
-ctr -n monitoring task ls 2>/dev/null | awk '{print $1}' | xargs -r -I{} ctr -n monitoring task kill --signal 9 {} || true
-sleep 2
-ctr -n monitoring container ls 2>/dev/null | awk '{print $1}' | xargs -r -I{} ctr -n monitoring container rm {} || true
+# Check if monitoring namespace exists
+if ctr namespace ls | grep -q monitoring; then
+    # Get list of running tasks
+    TASKS=$(ctr -n monitoring task ls 2>/dev/null | awk 'NR>1 {print $1}')
+    if [ -n "$TASKS" ]; then
+        for task in $TASKS; do
+            log "Stopping task: $task"
+            ctr -n monitoring task kill --signal 9 "$task" || log "Failed to stop task: $task (may already be stopped)"
+        done
+    else
+        log "No running tasks found"
+    fi
+    
+    sleep 2
+    
+    # Get list of containers
+    CONTAINERS=$(ctr -n monitoring container ls 2>/dev/null | awk 'NR>1 {print $1}')
+    if [ -n "$CONTAINERS" ]; then
+        for container in $CONTAINERS; do
+            log "Removing container: $container"
+            ctr -n monitoring container rm "$container" || log "Failed to remove container: $container (may not exist)"
+        done
+    else
+        log "No containers found"
+    fi
+else
+    log "Monitoring namespace not found, skipping container removal"
+fi
 
 # Remove container images
 log "Removing container images..."
-ctr -n monitoring image ls name~=prometheus 2>/dev/null | awk '{print $1}' | xargs -r -I{} ctr -n monitoring image rm {} || true
-ctr -n monitoring image ls name~=grafana 2>/dev/null | awk '{print $1}' | xargs -r -I{} ctr -n monitoring image rm {} || true
-ctr -n monitoring image ls name~=node-exporter 2>/dev/null | awk '{print $1}' | xargs -r -I{} ctr -n monitoring image rm {} || true
+# Check if monitoring namespace exists
+if ctr namespace ls | grep -q monitoring; then
+    # Get list of images
+    IMAGES=$(ctr -n monitoring image ls 2>/dev/null | awk 'NR>1 {print $1}')
+    if [ -n "$IMAGES" ]; then
+        for image in $IMAGES; do
+            log "Removing image: $image"
+            ctr -n monitoring image rm "$image" || log "Failed to remove image: $image (may be in use or not exist)"
+        done
+    else
+        log "No images found"
+    fi
+else
+    log "Monitoring namespace not found, skipping image removal"
+fi
 
 # Stop and disable services
 log "Stopping and disabling services..."
-systemctl stop nginx || true
-systemctl disable nginx || true
-systemctl stop node_exporter || true
-systemctl disable node_exporter || true
+# Check if nginx service exists
+if systemctl list-unit-files | grep -q nginx.service; then
+    systemctl stop nginx || log "Failed to stop nginx service (may already be stopped)"
+    systemctl disable nginx || log "Failed to disable nginx service"
+    log "Nginx service stopped and disabled"
+else
+    log "Nginx service not found, skipping"
+fi
+
+# Check if node_exporter service exists
+if systemctl list-unit-files | grep -q node_exporter.service; then
+    systemctl stop node_exporter || log "Failed to stop node_exporter service (may already be stopped)"
+    systemctl disable node_exporter || log "Failed to disable node_exporter service"
+    log "Node Exporter service stopped and disabled"
+else
+    log "Node Exporter service not found, skipping"
+fi
 
 # Remove Node Exporter systemd service
 if [ -f "/etc/systemd/system/node_exporter.service" ]; then

@@ -137,7 +137,7 @@ After successful deployment, you can access:
 
 - **Grafana**: http://your-instance-public-ip:3000
   - Username: admin
-  - Password: secure_grafana_password
+  - Password: admin (you'll be prompted to change this on first login)
 
 ## Post-Deployment Configuration
 
@@ -152,11 +152,9 @@ sudo systemctl restart nginx
 
 #### For Grafana:
 
-Log in to Grafana with the default credentials, then:
-1. Go to Configuration (gear icon) > Users
-2. Click on the admin user
-3. Click "Change Password"
-4. Enter and confirm your new password
+When you first log in to Grafana with the default credentials (admin/admin), you'll be automatically prompted to change your password. This is a security feature of Grafana to ensure you don't continue using the default password.
+
+After setting your new password, you'll be logged in and can start using Grafana.
 
 ### 2. Add Target EC2 Instances for Monitoring
 

@@ -138,27 +138,18 @@ Since Prometheus doesn't have built-in authentication in its core functionality,
 Grafana has built-in authentication:
 
 #### 2.1 Initial Admin User Setup
-- Admin user configured in grafana.ini or using environment variables:
-  ```ini
-  [security]
-  admin_user = admin
-  admin_password = $SECURE_PASSWORD
-  ```
-- When using containerd, passed as environment variables:
+- Admin user configured using environment variables with default credentials:
   ```
   GF_SECURITY_ADMIN_USER=admin
-  GF_SECURITY_ADMIN_PASSWORD=secure_password
+  GF_SECURITY_ADMIN_PASSWORD=admin
   ```
+- Users are prompted to change the password on first login
+- This approach ensures a clean and reliable authentication setup
 
 #### 2.2 Authentication Configuration
-- Authentication method configured in grafana.ini:
-  ```ini
-  [auth]
-  disable_login_form = false
-  
-  [auth.basic]
-  enabled = true
-  ```
+- Authentication uses Grafana's default settings
+- The deployment script uses a minimal configuration approach
+- This avoids potential conflicts between configuration file settings and environment variables
 
 #### 2.3 User Management
 - Additional users created through Grafana UI

@@ -44,8 +44,42 @@ check_status "System update"
 
 # Install required packages
 log "Installing required packages..."
-dnf install -y wget curl vim jq nginx httpd-tools
-check_status "Package installation"
+
+# Check if curl or curl-minimal is already installed
+if command -v curl &> /dev/null; then
+    log "curl is already available, skipping installation"
+    CURL_INSTALLED=true
+else
+    CURL_INSTALLED=false
+fi
+
+# Install packages individually to handle potential conflicts
+log "Installing wget..."
+dnf install -y wget
+check_status "wget installation"
+
+# Only install curl if not already available
+if [ "$CURL_INSTALLED" = false ]; then
+    log "Installing curl..."
+    # Try to install curl, but don't fail if it doesn't work
+    dnf install -y curl || log "Failed to install curl, continuing with curl-minimal"
+fi
+
+log "Installing vim..."
+dnf install -y vim
+check_status "vim installation"
+
+log "Installing jq..."
+dnf install -y jq
+check_status "jq installation"
+
+log "Installing nginx..."
+dnf install -y nginx
+check_status "nginx installation"
+
+log "Installing httpd-tools..."
+dnf install -y httpd-tools
+check_status "httpd-tools installation"
 
 # Install containerd
 log "Installing containerd..."

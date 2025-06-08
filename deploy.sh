@@ -267,28 +267,6 @@ check_status "Grafana container start"
 log "Waiting for Grafana to start up..."
 sleep 10
 
-# Run Nginx container
-log "Starting Nginx container..."
-ctr -n monitoring run \
-    --detach \
-    --net-host \
-    --mount type=bind,src=/data/nginx/nginx.conf,dst=/etc/nginx/nginx.conf,options=rbind:ro \
-    --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
-    --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
-    --mount type=bind,src=/data/nginx/etc/mime.types,dst=/etc/nginx/etc/mime.types,options=rbind:ro \
-    docker.io/library/nginx:latest \
-    nginx
-check_status "Nginx container start"
-
-# Configure firewall if it's enabled
-if systemctl is-active --quiet firewalld; then
-    log "Configuring firewall..."
-    firewall-cmd --permanent --add-port=8080/tcp
-    firewall-cmd --permanent --add-port=3000/tcp
-    firewall-cmd --reload
-    check_status "Firewall configuration"
-fi
-
 # Create Nginx mime.types file
 log "Creating Nginx mime.types file..."
 mkdir -p /data/nginx/etc
@@ -314,6 +292,28 @@ check_status "Nginx mime.types setup"
 log "Updating Nginx configuration to use local mime.types..."
 sed -i 's|include /etc/nginx/mime.types|include /etc/nginx/etc/mime.types|g' /data/nginx/nginx.conf
 check_status "Nginx configuration update"
+
+# Run Nginx container
+log "Starting Nginx container..."
+ctr -n monitoring run \
+    --detach \
+    --net-host \
+    --mount type=bind,src=/data/nginx/nginx.conf,dst=/etc/nginx/nginx.conf,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/conf.d,dst=/etc/nginx/conf.d,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/.htpasswd,dst=/etc/nginx/.htpasswd,options=rbind:ro \
+    --mount type=bind,src=/data/nginx/etc/mime.types,dst=/etc/nginx/etc/mime.types,options=rbind:ro \
+    docker.io/library/nginx:latest \
+    nginx
+check_status "Nginx container start"
+
+# Configure firewall if it's enabled
+if systemctl is-active --quiet firewalld; then
+    log "Configuring firewall..."
+    firewall-cmd --permanent --add-port=8080/tcp
+    firewall-cmd --permanent --add-port=3000/tcp
+    firewall-cmd --reload
+    check_status "Firewall configuration"
+fi
 
 # Create a basic Grafana dashboard configuration
 log "Creating Grafana dashboard configuration..."
